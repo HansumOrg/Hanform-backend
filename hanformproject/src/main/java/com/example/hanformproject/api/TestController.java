@@ -11,4 +11,10 @@ public class TestController {
     public ResponseEntity<String> hello(){
         return ResponseEntity.ok("Hello Docker-Spring World!");
     }
+
+    @GetMapping("/test")
+    public ResponseEntity<String> test(){
+        return ResponseEntity.ok("test");
+    }
+
 }
