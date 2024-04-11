@@ -22,7 +22,6 @@ public class SurveyDto {
     private String creationDate; // LocalDate를 String으로 처리
 
     public static SurveyDto creatSurveyDto(SurveyEntity surveyEntity){
-        //Format함수 Timestamp -> String
 
         String formattedDate = formatTimestampToString(surveyEntity.getCreationDate());
 
@@ -34,6 +33,7 @@ public class SurveyDto {
         );
     }
 
+    //formatting 함수 Timestamp -> String
     public static String formatTimestampToString(Timestamp timestamp) {
         LocalDateTime localDateTime = timestamp.toLocalDateTime();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

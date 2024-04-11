@@ -33,6 +33,7 @@ public class SurveyApiController {
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", "NotFound");
             errorResponse.put("message", "당신의 ID는 존재하지 않는 ID입니다.");
+            // {userId} 확인 후 존재하지 않은 유저이면 404 반환
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
         }
 
@@ -53,6 +54,5 @@ public class SurveyApiController {
         response.put("surveys", dtos);
 
         return ResponseEntity.ok(response);
-
     }
 }

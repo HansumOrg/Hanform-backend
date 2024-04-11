@@ -8,6 +8,7 @@ import java.util.ArrayList;
 
 public interface SurveyRepository extends JpaRepository<SurveyEntity, Long> {
 
+    //등록 된 모든 설문지 조회 기능
     @Override
     ArrayList<SurveyEntity> findAll();
 }
