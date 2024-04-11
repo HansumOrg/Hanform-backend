@@ -6,7 +6,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @AllArgsConstructor // 모든 필드를 매개변수로 갖는 생성자 자동 생성
 @NoArgsConstructor // 매개변수가 아예 없는 기본 생성자 자동 생성
@@ -20,14 +23,20 @@ public class SurveyDto {
 
     public static SurveyDto creatSurveyDto(SurveyEntity surveyEntity){
         //Format함수 Timestamp -> String
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String formatttedDate = sdf.format(surveyEntity.getCreationDate());
+
+        String formattedDate = formatTimestampToString(surveyEntity.getCreationDate());
 
         return new SurveyDto(
                 surveyEntity.getSurveyId(),
                 surveyEntity.getUserEntity().getUserId(),
                 surveyEntity.getSurveyTitle(),
-                formatttedDate
+                formattedDate
         );
+    }
+
+    public static String formatTimestampToString(Timestamp timestamp) {
+        LocalDateTime localDateTime = timestamp.toLocalDateTime();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return localDateTime.format(formatter);
     }
 }

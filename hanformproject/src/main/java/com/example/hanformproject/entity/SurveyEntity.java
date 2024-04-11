@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import java.security.Timestamp;
+import java.sql.Timestamp;
 
 @Entity
 @ToString
