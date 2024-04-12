@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
@@ -72,10 +73,17 @@ public class SurveyApiController {
     //설문지 생성 기능
     @Transactional
     @PostMapping("/api/{userId}/surveys")
-    public ResponseEntity<SurveyDto> createSurvey(@PathVariable Long userId, @RequestBody SurveyDto surveyDto) {
+    public ResponseEntity<?> createSurvey(@PathVariable Long userId, @RequestBody SurveyDto surveyDto) {
 
         // 0. 유저 확인
         UserEntity user = userRepository.findByUserId(userId);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Invalid userId.");
+        }
+
+        if (surveyDto.getTitle() == null || surveyDto.getTitle().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing required fields.");
+        }
 
         // 1. dto -> entity
         SurveyEntity survey = surveyDto.toEntity(user);
@@ -86,7 +94,7 @@ public class SurveyApiController {
         // 3. 자동으로 생성된 SurveyId 호출해서 Dto에 추가.
         surveyDto.setSurveyId(survey.getSurveyId());
 
-        // 4. SurveyDto에 질문이 있다면 하나 씩 DB에 저장
+        // 4. SurveyDto에 질문이 있다면 하나씩 DB에 저장
         if (surveyDto.getQuestions() != null && !surveyDto.getQuestions().isEmpty()) {
             SurveyEntity finalSurvey = survey;
             List<QuestionEntity> questions = surveyDto.getQuestions().stream().map(questionDto -> {
@@ -98,7 +106,7 @@ public class SurveyApiController {
                 question = questionRepository.save(question);
 
                 if (questionDto.getOptions() != null && !questionDto.getOptions().isEmpty()) {
-                    // Quetion 저장하고 나서 Option 처리
+                    // Question 저장하고 나서 Option 처리
                     QuestionEntity finalQuestion = question;
                     List<OptionEntity> options = questionDto.getOptions().stream().map(optionDto -> {
                         // Option dto -> entity
@@ -114,7 +122,12 @@ public class SurveyApiController {
                 return question;
             }).collect(Collectors.toList());
         }
-        // Dto 반환
-        return ResponseEntity.ok(surveyDto);
+
+        // 성공 응답
+        return ResponseEntity.status(HttpStatus.CREATED).body(new HashMap<String, Object>() {{
+            put("message", "Survey created successfully.");
+            put("surveyId", surveyDto.getSurveyId());
+            put("title", surveyDto.getTitle());
+        }});
     }
 }
