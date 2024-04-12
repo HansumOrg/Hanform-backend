@@ -9,11 +9,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @RestController
@@ -24,7 +26,8 @@ public class SurveyApiController {
     @Autowired
     private UserRepository userRepository;
 
-    @GetMapping("/api/{userId}/survey")
+    //설문지 조회 기능
+    @GetMapping("/api/{userId}/surveys")
     public ResponseEntity<Object> index(@PathVariable Long userId) {
 
         //0. 존재하는 유저인지 확인
@@ -44,7 +47,7 @@ public class SurveyApiController {
         List<SurveyDto> dtos = new ArrayList<SurveyDto>();
         for (int i = 0; i < surveys.size(); i++) {
             SurveyEntity s = surveys.get(i);
-            SurveyDto dto = SurveyDto.creatSurveyDto(s);
+            SurveyDto dto = new SurveyDto(s);
             dtos.add(dto);
         }
 
@@ -55,4 +58,28 @@ public class SurveyApiController {
 
         return ResponseEntity.ok(response);
     }
+
+    //설문지 생성 기능
+    @PostMapping("/api/{userId}/surveys")
+    public ResponseEntity<SurveyDto> createSurvey(@PathVariable Long userId, @RequestBody SurveyDto surveyDto){
+
+        UserEntity user = userRepository.findByUserId(userId);
+
+        SurveyEntity survey = new SurveyEntity();
+        survey.setUserEntity(user);
+        survey.setSurveyTitle(surveyDto.getTitle());
+        survey.setCreationDate(convertStringToTimestamp(surveyDto.getCreationDate()));
+
+        survey = surveyRepository.save(survey);
+
+        surveyDto.setSurveyId(survey.getSurveyId());
+        return ResponseEntity.ok(surveyDto);
+    }
+
+    private Timestamp convertStringToTimestamp(String strDate) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        LocalDateTime dateTime = LocalDateTime.parse(strDate, formatter);
+        return Timestamp.valueOf(dateTime);
+    }
+
 }
