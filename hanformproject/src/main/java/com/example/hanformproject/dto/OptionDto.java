@@ -1,5 +1,7 @@
 package com.example.hanformproject.dto;
 
+import com.example.hanformproject.entity.OptionEntity;
+import com.example.hanformproject.entity.QuestionEntity;
 import lombok.*;
 
 @AllArgsConstructor // 모든 필드를 매개변수로 갖는 생성자 자동 생성
@@ -12,4 +14,13 @@ public class OptionDto {
     private Long quetionId;
     private int optionNumber;
     private String optionText;
+
+    public OptionEntity toEntity(QuestionEntity question) {
+        OptionEntity option = new OptionEntity();
+        option.setQuestion(question);
+        option.setOptionNumber(this.getOptionNumber());
+        option.setOptionText(this.getOptionText());
+        return option;
+    }
+
 }

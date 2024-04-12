@@ -35,6 +35,7 @@ public class SurveyApiController {
     private QuestionRepository questionRepository;
     @Autowired
     private OptionRepository optionRepository;
+
     //설문지 조회 기능
     @GetMapping("/api/{userId}/surveys")
     public ResponseEntity<Object> index(@PathVariable Long userId) {
@@ -71,7 +72,7 @@ public class SurveyApiController {
     //설문지 생성 기능
     @Transactional
     @PostMapping("/api/{userId}/surveys")
-    public ResponseEntity<SurveyDto> createSurvey(@PathVariable Long userId, @RequestBody SurveyDto surveyDto){
+    public ResponseEntity<SurveyDto> createSurvey(@PathVariable Long userId, @RequestBody SurveyDto surveyDto) {
 
         // 0. 유저 확인
         UserEntity user = userRepository.findByUserId(userId);
@@ -85,39 +86,34 @@ public class SurveyApiController {
         // 3. 자동으로 생성된 SurveyId 호출해서 Dto에 추가.
         surveyDto.setSurveyId(survey.getSurveyId());
 
-        log.info(surveyDto.toString());
-
-        // 4. SurveyDto에 있는 질문들 뽑아서 저장
+        // 4. SurveyDto에 질문이 있다면 하나 씩 DB에 저장
         if (surveyDto.getQuestions() != null && !surveyDto.getQuestions().isEmpty()) {
             SurveyEntity finalSurvey = survey;
             List<QuestionEntity> questions = surveyDto.getQuestions().stream().map(questionDto -> {
-                QuestionEntity question = new QuestionEntity();
-                question.setSurvey(finalSurvey);
-                question.setQuestionNumber(questionDto.getQuestionNumber());
-                question.setQuestionText(questionDto.getQuestionText());
-                question.setQuestionType(questionDto.getQuestionType());
-                question.setIsRequired(questionDto.getIsRequired());
 
-                // 질문 먼저 저장
+                // Question dto -> entity
+                QuestionEntity question = questionDto.toEntity(finalSurvey);
+
+                // Question 먼저 저장
                 question = questionRepository.save(question);
 
-                // 저장하고 나서 옵션 처리
-                QuestionEntity finalQuestion = question;
-                List<OptionEntity> options = questionDto.getOptions().stream().map(optionDto -> {
-                    OptionEntity option = new OptionEntity();
-                    option.setQuestion(finalQuestion);
-                    option.setOptionNumber(optionDto.getOptionNumber());
-                    option.setOptionText(optionDto.getOptionText());
-                    return option;
-                }).collect(Collectors.toList());
+                if (questionDto.getOptions() != null && !questionDto.getOptions().isEmpty()) {
+                    // Quetion 저장하고 나서 Option 처리
+                    QuestionEntity finalQuestion = question;
+                    List<OptionEntity> options = questionDto.getOptions().stream().map(optionDto -> {
+                        // Option dto -> entity
+                        OptionEntity option = optionDto.toEntity(finalQuestion);
+                        return option;
 
-                // 옵션 저장
-                optionRepository.saveAll(options);
-                question.setOptions(options);
+                    }).collect(Collectors.toList());
+
+                    // Option 저장
+                    optionRepository.saveAll(options);
+                    question.setOptions(options);
+                }
                 return question;
             }).collect(Collectors.toList());
         }
-
         // Dto 반환
         return ResponseEntity.ok(surveyDto);
     }

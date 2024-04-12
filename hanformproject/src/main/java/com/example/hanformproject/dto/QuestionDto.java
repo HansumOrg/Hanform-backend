@@ -1,5 +1,8 @@
 package com.example.hanformproject.dto;
 
+import com.example.hanformproject.entity.QuestionEntity;
+import com.example.hanformproject.entity.SurveyEntity;
+import com.example.hanformproject.entity.UserEntity;
 import lombok.*;
 
 import java.util.List;
@@ -16,4 +19,17 @@ public class QuestionDto {
     private String questionType;
     private Boolean isRequired;
     private List<OptionDto> options;
+
+
+    public QuestionEntity toEntity(SurveyEntity survey){
+
+        QuestionEntity question = new QuestionEntity();
+        question.setSurvey(survey);
+        question.setQuestionNumber(this.getQuestionNumber());
+        question.setQuestionText(this.getQuestionText());
+        question.setQuestionType(this.getQuestionType());
+        question.setIsRequired(this.getIsRequired());
+
+        return question;
+    }
 }
