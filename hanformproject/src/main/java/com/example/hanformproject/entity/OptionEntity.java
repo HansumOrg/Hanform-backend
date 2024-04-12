@@ -15,7 +15,7 @@ public class OptionEntity {
     private Long optionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "questionId", nullable = false)
+    @JoinColumn(name = "questionId")
     private QuestionEntity question;
 
     @Column(name = "optionNumber")

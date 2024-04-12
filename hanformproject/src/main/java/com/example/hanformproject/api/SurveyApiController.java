@@ -1,9 +1,11 @@
 package com.example.hanformproject.api;
 
 import com.example.hanformproject.dto.SurveyDto;
+import com.example.hanformproject.entity.OptionEntity;
 import com.example.hanformproject.entity.QuestionEntity;
 import com.example.hanformproject.entity.SurveyEntity;
 import com.example.hanformproject.entity.UserEntity;
+import com.example.hanformproject.repository.OptionRepository;
 import com.example.hanformproject.repository.QuestionRepository;
 import com.example.hanformproject.repository.SurveyRepository;
 import com.example.hanformproject.repository.UserRepository;
@@ -11,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -30,7 +33,8 @@ public class SurveyApiController {
     private UserRepository userRepository;
     @Autowired
     private QuestionRepository questionRepository;
-
+    @Autowired
+    private OptionRepository optionRepository;
     //설문지 조회 기능
     @GetMapping("/api/{userId}/surveys")
     public ResponseEntity<Object> index(@PathVariable Long userId) {
@@ -65,6 +69,7 @@ public class SurveyApiController {
     }
 
     //설문지 생성 기능
+    @Transactional
     @PostMapping("/api/{userId}/surveys")
     public ResponseEntity<SurveyDto> createSurvey(@PathVariable Long userId, @RequestBody SurveyDto surveyDto){
 
@@ -92,13 +97,28 @@ public class SurveyApiController {
                 question.setQuestionText(questionDto.getQuestionText());
                 question.setQuestionType(questionDto.getQuestionType());
                 question.setIsRequired(questionDto.getIsRequired());
+
+                // 질문 먼저 저장
+                question = questionRepository.save(question);
+
+                // 저장하고 나서 옵션 처리
+                QuestionEntity finalQuestion = question;
+                List<OptionEntity> options = questionDto.getOptions().stream().map(optionDto -> {
+                    OptionEntity option = new OptionEntity();
+                    option.setQuestion(finalQuestion);
+                    option.setOptionNumber(optionDto.getOptionNumber());
+                    option.setOptionText(optionDto.getOptionText());
+                    return option;
+                }).collect(Collectors.toList());
+
+                // 옵션 저장
+                optionRepository.saveAll(options);
+                question.setOptions(options);
                 return question;
             }).collect(Collectors.toList());
-
-            questionRepository.saveAll(questions);  // 모든 질문을 데이터베이스에 저장
         }
 
-        // 3. Dto 반환
+        // Dto 반환
         return ResponseEntity.ok(surveyDto);
     }
 }
