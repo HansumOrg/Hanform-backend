@@ -36,7 +36,15 @@ public class SurveyDto {
         this.userId = surveyEntity.getUserEntity().getUserId();
         this.title = surveyEntity.getSurveyTitle();
         this.creationDate = formattedDate;
+    }
 
+    public SurveyEntity toEntity(UserEntity user){
+
+        SurveyEntity survey = new SurveyEntity();
+        survey.setUserEntity(user);
+        survey.setSurveyTitle(this.getTitle());
+        survey.setCreationDate(convertStringToTimestamp(this.getCreationDate()));
+        return survey;
     }
 
     public Timestamp getTimeStampeCreationDate() {
@@ -54,12 +62,10 @@ public class SurveyDto {
         return localDateTime.format(formatter);
     }
 
-    //formatting 함수 String -> Timestamp
-    public static Timestamp convertStringToTimestamp(String strDate) {
+    private Timestamp convertStringToTimestamp(String strDate) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        // 문자열을 LocalDateTime 객체로 파싱
-        LocalDateTime localDateTime = LocalDateTime.parse(strDate, formatter);
-        // LocalDateTime을 Timestamp로 변환
-        return Timestamp.valueOf(localDateTime);
+        LocalDateTime dateTime = LocalDateTime.parse(strDate, formatter);
+        return Timestamp.valueOf(dateTime);
     }
+
 }

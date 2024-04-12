@@ -1,8 +1,10 @@
 package com.example.hanformproject.api;
 
 import com.example.hanformproject.dto.SurveyDto;
+import com.example.hanformproject.entity.QuestionEntity;
 import com.example.hanformproject.entity.SurveyEntity;
 import com.example.hanformproject.entity.UserEntity;
+import com.example.hanformproject.repository.QuestionRepository;
 import com.example.hanformproject.repository.SurveyRepository;
 import com.example.hanformproject.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,7 @@ import java.util.*;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -25,6 +28,8 @@ public class SurveyApiController {
     private SurveyRepository surveyRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private QuestionRepository questionRepository;
 
     //설문지 조회 기능
     @GetMapping("/api/{userId}/surveys")
@@ -63,23 +68,37 @@ public class SurveyApiController {
     @PostMapping("/api/{userId}/surveys")
     public ResponseEntity<SurveyDto> createSurvey(@PathVariable Long userId, @RequestBody SurveyDto surveyDto){
 
+        // 0. 유저 확인
         UserEntity user = userRepository.findByUserId(userId);
 
-        SurveyEntity survey = new SurveyEntity();
-        survey.setUserEntity(user);
-        survey.setSurveyTitle(surveyDto.getTitle());
-        survey.setCreationDate(convertStringToTimestamp(surveyDto.getCreationDate()));
+        // 1. dto -> entity
+        SurveyEntity survey = surveyDto.toEntity(user);
 
+        // 2. entity 저장
         survey = surveyRepository.save(survey);
 
+        // 3. 자동으로 생성된 SurveyId 호출해서 Dto에 추가.
         surveyDto.setSurveyId(survey.getSurveyId());
+
+        log.info(surveyDto.toString());
+
+        // 4. SurveyDto에 있는 질문들 뽑아서 저장
+        if (surveyDto.getQuestions() != null && !surveyDto.getQuestions().isEmpty()) {
+            SurveyEntity finalSurvey = survey;
+            List<QuestionEntity> questions = surveyDto.getQuestions().stream().map(questionDto -> {
+                QuestionEntity question = new QuestionEntity();
+                question.setSurvey(finalSurvey);
+                question.setQuestionNumber(questionDto.getQuestionNumber());
+                question.setQuestionText(questionDto.getQuestionText());
+                question.setQuestionType(questionDto.getQuestionType());
+                question.setIsRequired(questionDto.getIsRequired());
+                return question;
+            }).collect(Collectors.toList());
+
+            questionRepository.saveAll(questions);  // 모든 질문을 데이터베이스에 저장
+        }
+
+        // 3. Dto 반환
         return ResponseEntity.ok(surveyDto);
     }
-
-    private Timestamp convertStringToTimestamp(String strDate) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        LocalDateTime dateTime = LocalDateTime.parse(strDate, formatter);
-        return Timestamp.valueOf(dateTime);
-    }
-
 }
