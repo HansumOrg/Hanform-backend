@@ -21,6 +21,14 @@ public class QuestionDto {
     private List<OptionDto> options;
 
 
+    public QuestionDto(Long questionId, int questionNumber, String questionText, String questionType, Boolean isRequired) {
+        this.questionId = questionId;
+        this.questionNumber = questionNumber;
+        this.questionText = questionText;
+        this.questionType = questionType;
+        this.isRequired = isRequired;
+    }
+
     public QuestionEntity toEntity(SurveyEntity survey){
 
         QuestionEntity question = new QuestionEntity();

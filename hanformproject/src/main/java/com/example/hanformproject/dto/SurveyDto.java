@@ -7,6 +7,7 @@ import lombok.*;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @AllArgsConstructor // 모든 필드를 매개변수로 갖는 생성자 자동 생성

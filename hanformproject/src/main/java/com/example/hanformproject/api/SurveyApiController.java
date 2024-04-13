@@ -1,5 +1,7 @@
 package com.example.hanformproject.api;
 
+import com.example.hanformproject.dto.OptionDto;
+import com.example.hanformproject.dto.QuestionDto;
 import com.example.hanformproject.dto.SurveyDto;
 import com.example.hanformproject.entity.OptionEntity;
 import com.example.hanformproject.entity.QuestionEntity;
@@ -23,6 +25,8 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
+
+import static com.example.hanformproject.dto.SurveyDto.formatTimestampToString;
 
 @Slf4j
 @RestController
@@ -56,11 +60,7 @@ public class SurveyApiController {
 
         //2. 엔티티 -> DTO
         List<SurveyDto> dtos = new ArrayList<SurveyDto>();
-        for (int i = 0; i < surveys.size(); i++) {
-            SurveyEntity s = surveys.get(i);
-            SurveyDto dto = new SurveyDto(s);
-            dtos.add(dto);
-        }
+        dtos = surveys.stream().map(this::convertEntityToDto).collect(Collectors.toList());
 
         //3. 반환 시 dtos와 URL에서 받은 userId를 같이 반환
         Map<String, Object> response = new HashMap<>();
@@ -68,6 +68,36 @@ public class SurveyApiController {
         response.put("surveys", dtos);
 
         return ResponseEntity.ok(response);
+    }
+
+    private SurveyDto convertEntityToDto(SurveyEntity survey) {
+        List<QuestionDto> questionDtos = survey.getQuestions().stream()
+                .map(question -> {
+                    List<OptionDto> optionDtos = question.getOptions().stream()
+                            .map(option -> new OptionDto(
+                                    option.getOptionId(),
+                                    option.getQuestion().getQuestionId(),
+                                    option.getOptionNumber(),
+                                    option.getOptionText()
+                            )).collect(Collectors.toList());
+
+                    return new QuestionDto(
+                            question.getQuestionId(),
+                            question.getQuestionNumber(),
+                            question.getQuestionText(),
+                            question.getQuestionType(),
+                            question.getIsRequired(),
+                            optionDtos  // 추가된 옵션 리스트
+                    );
+                }).collect(Collectors.toList());
+
+        return new SurveyDto(
+                survey.getSurveyId(),
+                survey.getUserEntity().getUserId(),
+                survey.getSurveyTitle(),
+                formatTimestampToString(survey.getCreationDate()),
+                questionDtos
+        );
     }
 
     //설문지 생성 기능

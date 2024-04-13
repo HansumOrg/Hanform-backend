@@ -52,20 +52,4 @@ public class SurveyEntity {
 //                dto.getBody() // 댓글 본문
 //        );
 //    }
-
-    public static SurveyEntity createSurvey(SurveyDto dto, UserEntity user){
-
-        //예외 발생 => dto가 존재하는지, user가 존재하는지
-
-//        SurveyEntity survey = new SurveyEntity(dto.getSurveyId(), user, dto.getTitle(), dto.getCreationDate());
-
-//        SurveyEntity survey = new SurveyEntity(dto.getSurveyId(), user, dto.getTitle(), dto.getTimeStampeCreationDate(), dto);
-
-//        SurveyEntity survey = new SurveyEntity();
-//        survey.setUserEntity(user);
-//        survey.setSurveyTitle(dto.getTitle());
-
-
-        return null;
-    }
 }
