@@ -22,50 +22,28 @@ public class SurveyDto {
     private String creationDate; // LocalDate를 String으로 처리
     private List<QuestionDto> questions;
 
-    public SurveyDto(Long surveyId, Long userId, String title, String creationDate){
-        this.surveyId = surveyId;
-        this.userId = userId;
-        this.title = title;
-        this.creationDate = creationDate;
-    }
-
-    public SurveyDto (SurveyEntity surveyEntity){
-
-        String formattedDate = formatTimestampToString(surveyEntity.getCreationDate());
-
-        this.surveyId = surveyEntity.getSurveyId();
-        this.userId = surveyEntity.getUserEntity().getUserId();
-        this.title = surveyEntity.getSurveyTitle();
-        this.creationDate = formattedDate;
-    }
-
-    public SurveyEntity toEntity(UserEntity user){
-
+    public SurveyEntity toEntity(UserEntity user) {
         SurveyEntity survey = new SurveyEntity();
         survey.setUserEntity(user);
         survey.setSurveyTitle(this.getTitle());
         survey.setCreationDate(convertStringToTimestamp(this.getCreationDate()));
+
         return survey;
     }
-
-    public Timestamp getTimeStampeCreationDate() {
-
-        Timestamp timestamp = convertStringToTimestamp(this.creationDate);
-
-        return timestamp;
-    }
-
 
     //formatting 함수 Timestamp -> String
     public static String formatTimestampToString(Timestamp timestamp) {
         LocalDateTime localDateTime = timestamp.toLocalDateTime();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
         return localDateTime.format(formatter);
     }
 
+    //formatting 함수 String -> Timestamp
     private Timestamp convertStringToTimestamp(String strDate) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         LocalDateTime dateTime = LocalDateTime.parse(strDate, formatter);
+
         return Timestamp.valueOf(dateTime);
     }
 

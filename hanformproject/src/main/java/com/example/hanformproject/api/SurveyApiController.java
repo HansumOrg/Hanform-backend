@@ -70,6 +70,43 @@ public class SurveyApiController {
         return ResponseEntity.ok(response);
     }
 
+    //상대방 설문지 조회 기능
+    @GetMapping("/api/{userId}/surveys/{surveyId}")
+    public ResponseEntity<Object> showQuestions(@PathVariable Long userId, @PathVariable Long surveyId) {
+
+        //0. 존재하는 유저인지 확인
+        Optional<UserEntity> userEntity = userRepository.findById(userId);
+        if (!userEntity.isPresent()) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "NotFound");
+            errorResponse.put("message", "당신의 ID는 존재하지 않는 ID입니다.");
+            // {userId} 확인 후 존재하지 않은 유저이면 404 반환
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
+
+        //1. Repository에 모든 설문지 조회
+        Optional<SurveyEntity> surveyOpt = surveyRepository.findById(surveyId);
+        if (surveyOpt.isEmpty()) {  // Optional이 비어있는지 직접 확인
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "NotFound");
+            errorResponse.put("message", "해당 설문지가 존재하지 않습니다.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
+
+        //2. SurveyEntity -> SurveyDTo 변환
+        SurveyEntity survey = surveyOpt.get();
+        SurveyDto surveyDto = convertEntityToDto(survey);
+
+        //3. 반환 시 surveyDto와 URL에서 받은 userId를 같이 반환
+        Map<String, Object> response = new HashMap<>();
+        response.put("userId", userId);
+        response.put("survey", surveyDto);
+
+        return ResponseEntity.ok(response);
+    }
+
+    //SurveyEntity를 SurveyDto로 변경하는 함수.
+    //이 함수를 SurveyDto 클래스에 정의하고 싶었으나 자바 문법 한계로 인해서 실패
     private SurveyDto convertEntityToDto(SurveyEntity survey) {
         List<QuestionDto> questionDtos = survey.getQuestions().stream()
                 .map(question -> {
@@ -100,46 +137,25 @@ public class SurveyApiController {
         );
     }
 
-    @GetMapping("/api/{userId}/surveys/{surveyId}")
-    public ResponseEntity<Object> showQuestions(@PathVariable Long userId, @PathVariable Long surveyId){
-
-        //0. 존재하는 유저인지 확인
-        Optional<UserEntity> userEntity = userRepository.findById(userId);
-        if (!userEntity.isPresent()) {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "NotFound");
-            errorResponse.put("message", "당신의 ID는 존재하지 않는 ID입니다.");
-            // {userId} 확인 후 존재하지 않은 유저이면 404 반환
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
-
-        //1. Repository에 모든 설문지 조회
-        Optional<SurveyEntity> surveyOpt = surveyRepository.findById(surveyId);
-
-        SurveyEntity survey = surveyOpt.get();
-
-        SurveyDto surveyDto = convertEntityToDto(survey);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("userId", userId);
-        response.put("survey", surveyDto);
-
-        return ResponseEntity.ok(response);
-    }
-
     //설문지 생성 기능
     @Transactional
     @PostMapping("/api/{userId}/surveys")
-    public ResponseEntity<?> createSurvey(@PathVariable Long userId, @RequestBody SurveyDto surveyDto) {
+    public ResponseEntity<Object> createSurvey(@PathVariable Long userId, @RequestBody SurveyDto surveyDto) {
 
         // 0. 유저 확인
         UserEntity user = userRepository.findByUserId(userId);
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Invalid userId.");
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "NotFound");
+            errorResponse.put("message", "당신의 ID는 존재하지 않는 ID입니다.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
         }
 
         if (surveyDto.getTitle() == null || surveyDto.getTitle().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing required fields.");
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "NotMatch");
+            errorResponse.put("message", "입력 데이터가 올바르지 않습니다.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
         }
 
         // 1. dto -> entity

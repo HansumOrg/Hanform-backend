@@ -20,16 +20,7 @@ public class QuestionDto {
     private Boolean isRequired;
     private List<OptionDto> options;
 
-
-    public QuestionDto(Long questionId, int questionNumber, String questionText, String questionType, Boolean isRequired) {
-        this.questionId = questionId;
-        this.questionNumber = questionNumber;
-        this.questionText = questionText;
-        this.questionType = questionType;
-        this.isRequired = isRequired;
-    }
-
-    public QuestionEntity toEntity(SurveyEntity survey){
+    public QuestionEntity toEntity(SurveyEntity survey) {
 
         QuestionEntity question = new QuestionEntity();
         question.setSurvey(survey);

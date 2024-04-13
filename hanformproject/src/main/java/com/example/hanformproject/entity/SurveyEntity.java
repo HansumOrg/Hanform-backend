@@ -37,19 +37,4 @@ public class SurveyEntity {
     // orphanRemoval 데이터 베이스 삭제시, 부모 가 삭제되면 자식도 같이 삭제됨.
     @OneToMany(mappedBy = "survey", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuestionEntity> questions = new ArrayList<>();
-
-//    public static Comment createComment(CommentDto dto, Article article) {
-//        // 예외 발생
-//        if (dto.getId() != null)
-//            throw new IllegalArgumentException("댓글 생성 실패! 댓글의 id가 없어야 합니다.");
-//        if (dto.getArticleId() != article.getId())
-//            throw new IllegalArgumentException("댓글 생성 실패! 게시글의 id가 잘못됐습니다.");
-//        // 엔티티 생성 및 반환
-//        return new Comment(
-//                dto.getId(), // 댓글 아이디
-//                article, // 부모 게시글
-//                dto.getNickname(), // 댓글 닉네임
-//                dto.getBody() // 댓글 본문
-//        );
-//    }
 }
