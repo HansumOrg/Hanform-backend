@@ -100,6 +100,33 @@ public class SurveyApiController {
         );
     }
 
+    @GetMapping("/api/{userId}/surveys/{surveyId}")
+    public ResponseEntity<Object> showQuestions(@PathVariable Long userId, @PathVariable Long surveyId){
+
+        //0. 존재하는 유저인지 확인
+        Optional<UserEntity> userEntity = userRepository.findById(userId);
+        if (!userEntity.isPresent()) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "NotFound");
+            errorResponse.put("message", "당신의 ID는 존재하지 않는 ID입니다.");
+            // {userId} 확인 후 존재하지 않은 유저이면 404 반환
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
+
+        //1. Repository에 모든 설문지 조회
+        Optional<SurveyEntity> surveyOpt = surveyRepository.findById(surveyId);
+
+        SurveyEntity survey = surveyOpt.get();
+
+        SurveyDto surveyDto = convertEntityToDto(survey);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("userId", userId);
+        response.put("survey", surveyDto);
+
+        return ResponseEntity.ok(response);
+    }
+
     //설문지 생성 기능
     @Transactional
     @PostMapping("/api/{userId}/surveys")
