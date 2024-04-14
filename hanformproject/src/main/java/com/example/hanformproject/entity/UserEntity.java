@@ -8,6 +8,7 @@ import lombok.*;
 @NoArgsConstructor // 디폴트 생성자를 추가!
 @ToString
 @Getter
+@Setter
 public class UserEntity {
 
     @Id // 대표값
