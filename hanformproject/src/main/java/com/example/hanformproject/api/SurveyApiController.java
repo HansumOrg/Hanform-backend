@@ -229,7 +229,7 @@ public class SurveyApiController {
         }
 
         //2. 존재한다면 SurveyDto에서 제목부분만 업데이트
-        survey.patch(surveyDto);
+        survey.patchTitle(surveyDto);
         surveyRepository.save(survey);
 
         log.info(survey.toString());
@@ -242,22 +242,42 @@ public class SurveyApiController {
         }});
     }
 
-    // 해당 설문지에 대한 질문지 수정
+    // 설문지에 대한 질문지, 선택지 수정
     @PutMapping("/api/{userId}/surveys/{surveyId}")
     public ResponseEntity<Object> updateSurveyQuestions(@PathVariable Long userId, @PathVariable Long surveyId, @RequestBody SurveyDto surveyDto){
 
+        //0. findById로 존재하는 설문지인지 확인
         SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
 
-        survey.setSurveyTitle(surveyDto.getTitle());
+        if(survey == null){
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "NotFound");
+            errorResponse.put("message", "수정하려는 설문지는 존재하지 않습니다.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
 
-        // Question and Option update logic
+        //1. 유저 권한 확인
+        UserEntity user = userRepository.findByUserId(userId);
+
+        if (survey.getUserEntity().getUserId() != userId) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "NotFound");
+            errorResponse.put("message", "당신은 ID는 수정 권한이 존재하지 않습니다.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
+
+        //2. 설문지 제목 수정
+        survey.patchTitle(surveyDto);
+
+        //3. 설문지에 대한 질문, 선택지 수정
         updateQuestions(survey, surveyDto.getQuestions());
 
+        //4. 수정된 설문지 저장.
         surveyRepository.save(survey);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new HashMap<String, Object>() {{
             put("message", "Survey updated successfully.");
-            put("surveyId", surveyDto.getSurveyId());
+            put("surveyId", survey.getSurveyId());
         }});
     }
 

@@ -38,11 +38,7 @@ public class SurveyEntity {
     @OneToMany(mappedBy = "survey", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuestionEntity> questions = new ArrayList<>();
 
-    public void patch(SurveyDto surveyDto){
-        // 예외 발생
-        if(this.surveyId != surveyDto.getSurveyId()) {
-            throw new IllegalArgumentException("설문지 제목 수정 실패! 수정하려고 하는 설문지 id가 일치하지 않습니다.");
-        }
+    public void patchTitle(SurveyDto surveyDto){
         // 객체 갱싱
         if(surveyDto.getTitle() != null){
             this.surveyTitle = surveyDto.getTitle();
