@@ -18,7 +18,7 @@ public class AnswerEntity {
     @Column(name = "answerId", nullable = false)
     private Long answerId;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "userId", nullable = false)
     private UserEntity user;
 
@@ -26,7 +26,7 @@ public class AnswerEntity {
     @JoinColumn(name = "questionId", nullable = false)
     private QuestionEntity question;
 
-    @Column(name= "answerText", nullable = false)
-    private String answerText;
+    @Column(name= "answer", nullable = false)
+    private String answer;
 
 }
