@@ -25,13 +25,4 @@ public class UserEntity {
     @Column
     private String password;
 
-    public void patch(UserEntity userEntity) {
-        if (userEntity.loginId != null)
-            this.loginId = userEntity.loginId;
-        if (userEntity.nickname != null)
-            this.nickname = userEntity.nickname;
-        if (userEntity.password != null)
-            this.password = userEntity.password;
-    }
-
 }
