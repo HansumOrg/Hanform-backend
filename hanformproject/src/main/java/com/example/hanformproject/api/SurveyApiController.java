@@ -330,4 +330,38 @@ public class SurveyApiController {
                 .collect(Collectors.toList())
                 .contains(option.getOptionNumber()));
     }
+
+    //설문지 삭제 기능
+    //설문지 삭제 시 설문지에 포함되는 질문지, 선택지는 모두 삭제된다.
+    //추가로 설문지에 대한 답변도 모두 삭제된다. -> 설문지 답변에 대한 기능이 아직 개발 중이므로 추 후에 개발
+    @DeleteMapping("/api/{userId}/surveys/{surveyId}")
+    public ResponseEntity<Object> deleteSurvey(@PathVariable Long userId, @PathVariable Long surveyId){
+
+        //0. findById로 존재하는 설문지인지 확인
+        SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
+
+        if(survey == null){
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "NotFound");
+            errorResponse.put("message", "삭제하려는 설문지는 존재하지 않습니다.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
+
+        //1. 유저 권한 확인
+        UserEntity user = userRepository.findByUserId(userId);
+
+        if (survey.getUserEntity().getUserId() != userId) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "NotFound");
+            errorResponse.put("message", "당신은 ID는 삭제 권한이 존재하지 않습니다.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
+
+        surveyRepository.delete(survey);
+
+        return ResponseEntity.status(HttpStatus.OK).body(new HashMap<String, Object>() {{
+            put("message", "설문지가 삭제되었습니다.");
+            put("surveyId", survey.getSurveyId());
+        }});
+    }
 }
