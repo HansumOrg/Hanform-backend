@@ -46,26 +46,21 @@ public class SurveyApiController {
     public ResponseEntity<Object> index(@PathVariable Long userId) {
 
         //0. 존재하는 유저인지 확인
-        Optional<UserEntity> userEntity = userRepository.findById(userId);
-        if (!userEntity.isPresent()) {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "NotFound");
-            errorResponse.put("message", "당신의 ID는 존재하지 않는 ID입니다.");
-            // {userId} 확인 후 존재하지 않은 유저이면 404 반환
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
+        UserEntity userEntity = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         //1. Repository에 모든 설문지 조회
         List<SurveyEntity> surveys = surveyRepository.findAll();
 
         //2. 엔티티 -> DTO
-        List<SurveyDto> dtos = new ArrayList<SurveyDto>();
-        dtos = surveys.stream().map(this::convertEntityToDto).collect(Collectors.toList());
+        List<SurveyDto> surveyDtos = new ArrayList<SurveyDto>();
+        //convertEntityToDto 개선 시키면 좋을 듯.
+        surveyDtos = surveys.stream().map(this::convertEntityToDto).collect(Collectors.toList());
 
         //3. 반환 시 dtos와 URL에서 받은 userId를 같이 반환
         Map<String, Object> response = new HashMap<>();
         response.put("userId", userId);
-        response.put("surveys", dtos);
+        response.put("surveys", surveyDtos);
 
         return ResponseEntity.ok(response);
     }
@@ -75,26 +70,16 @@ public class SurveyApiController {
     public ResponseEntity<Object> showQuestions(@PathVariable Long userId, @PathVariable Long surveyId) {
 
         //0. 존재하는 유저인지 확인
-        Optional<UserEntity> userEntity = userRepository.findById(userId);
-        if (!userEntity.isPresent()) {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "NotFound");
-            errorResponse.put("message", "당신의 ID는 존재하지 않는 ID입니다.");
-            // {userId} 확인 후 존재하지 않은 유저이면 404 반환
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
 
         //1. Repository에 모든 설문지 조회
-        Optional<SurveyEntity> surveyOpt = surveyRepository.findById(surveyId);
-        if (surveyOpt.isEmpty()) {  // Optional이 비어있는지 직접 확인
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "NotFound");
-            errorResponse.put("message", "해당 설문지가 존재하지 않습니다.");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
+        SurveyEntity survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Survey not found"));
 
         //2. SurveyEntity -> SurveyDTo 변환
-        SurveyEntity survey = surveyOpt.get();
+        //converEntityToDto 개선 시킬 필요 있음.
         SurveyDto surveyDto = convertEntityToDto(survey);
 
         //3. 반환 시 surveyDto와 URL에서 받은 userId를 같이 반환
@@ -142,21 +127,9 @@ public class SurveyApiController {
     @PostMapping("/api/{userId}/surveys")
     public ResponseEntity<Object> createSurvey(@PathVariable Long userId, @RequestBody SurveyDto surveyDto) {
 
-        // 0. 유저 확인
-        UserEntity user = userRepository.findByUserId(userId);
-        if (user == null) {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "NotFound");
-            errorResponse.put("message", "당신의 ID는 존재하지 않는 ID입니다.");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
-
-        if (surveyDto.getTitle() == null || surveyDto.getTitle().isEmpty()) {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "NotMatch");
-            errorResponse.put("message", "입력 데이터가 올바르지 않습니다.");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
+        //0. 유저 확인
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         // 1. dto -> entity
         SurveyEntity survey = surveyDto.toEntity(user);
@@ -170,30 +143,31 @@ public class SurveyApiController {
         // 4. SurveyDto에 질문이 있다면 하나씩 DB에 저장
         if (surveyDto.getQuestions() != null && !surveyDto.getQuestions().isEmpty()) {
             SurveyEntity finalSurvey = survey;
-            List<QuestionEntity> questions = surveyDto.getQuestions().stream().map(questionDto -> {
+            List<QuestionEntity> questions = surveyDto.getQuestions().stream()
+                    .map(questionDto -> {
+                        // Question dto -> entity
+                        QuestionEntity question = questionDto.toEntity(finalSurvey);
 
-                // Question dto -> entity
-                QuestionEntity question = questionDto.toEntity(finalSurvey);
+                        // Question 먼저 저장
+                        question = questionRepository.save(question);
 
-                // Question 먼저 저장
-                question = questionRepository.save(question);
+                        if (questionDto.getOptions() != null && !questionDto.getOptions().isEmpty()) {
+                            // Question 저장하고 나서 Option 처리
+                            QuestionEntity finalQuestion = question;
+                            List<OptionEntity> options = questionDto.getOptions().stream()
+                                    .map(optionDto -> {
+                                        // Option dto -> entity
+                                        OptionEntity option = optionDto.toEntity(finalQuestion);
+                                        return option;
 
-                if (questionDto.getOptions() != null && !questionDto.getOptions().isEmpty()) {
-                    // Question 저장하고 나서 Option 처리
-                    QuestionEntity finalQuestion = question;
-                    List<OptionEntity> options = questionDto.getOptions().stream().map(optionDto -> {
-                        // Option dto -> entity
-                        OptionEntity option = optionDto.toEntity(finalQuestion);
-                        return option;
+                                    }).collect(Collectors.toList());
 
+                            // Option 저장
+                            optionRepository.saveAll(options);
+                            question.setOptions(options);
+                        }
+                        return question;
                     }).collect(Collectors.toList());
-
-                    // Option 저장
-                    optionRepository.saveAll(options);
-                    question.setOptions(options);
-                }
-                return question;
-            }).collect(Collectors.toList());
         }
 
         // 성공 응답
@@ -205,34 +179,23 @@ public class SurveyApiController {
     }
 
     //설문지 제목 수정
+    @Transactional
     @PatchMapping("/api/{userId}/surveys/{surveyId}")
-    public ResponseEntity<Object> updateSurveyTitle(@PathVariable Long userId, @PathVariable Long surveyId, @RequestBody SurveyDto surveyDto){
+    public ResponseEntity<Object> updateSurveyTitle(@PathVariable Long userId, @PathVariable Long surveyId, @RequestBody SurveyDto surveyDto) {
 
         //0. findById로 존재하는 설문지인지 확인
-        SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
-
-        if(survey == null){
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "NotFound");
-            errorResponse.put("message", "수정하려는 설문지는 존재하지 않습니다.");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
+        SurveyEntity survey = surveyRepository.findById(surveyId).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Survey not found"));
 
         //1. 유저 권한 확인
-        UserEntity user = userRepository.findByUserId(userId);
-
-        if (survey.getUserEntity().getUserId() != userId) {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "NotFound");
-            errorResponse.put("message", "당신은 ID는 수정 권한이 존재하지 않습니다.");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         //2. 존재한다면 SurveyDto에서 제목부분만 업데이트
         survey.patchTitle(surveyDto);
         surveyRepository.save(survey);
 
-        log.info(survey.toString());
+        log.info("Updated Survey: {}", survey.toString());
 
         //3. 변경된 설문지 제목 반환
         return ResponseEntity.status(HttpStatus.CREATED).body(new HashMap<String, Object>() {{
@@ -243,28 +206,17 @@ public class SurveyApiController {
     }
 
     // 설문지에 대한 질문지, 선택지 수정
+    @Transactional
     @PutMapping("/api/{userId}/surveys/{surveyId}")
-    public ResponseEntity<Object> updateSurveyQuestions(@PathVariable Long userId, @PathVariable Long surveyId, @RequestBody SurveyDto surveyDto){
+    public ResponseEntity<Object> updateSurveyQuestions(@PathVariable Long userId, @PathVariable Long surveyId, @RequestBody SurveyDto surveyDto) {
 
         //0. findById로 존재하는 설문지인지 확인
-        SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
-
-        if(survey == null){
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "NotFound");
-            errorResponse.put("message", "수정하려는 설문지는 존재하지 않습니다.");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
+        SurveyEntity survey = surveyRepository.findById(surveyId).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Survey not found"));
 
         //1. 유저 권한 확인
-        UserEntity user = userRepository.findByUserId(userId);
-
-        if (survey.getUserEntity().getUserId() != userId) {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "NotFound");
-            errorResponse.put("message", "당신은 ID는 수정 권한이 존재하지 않습니다.");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         //2. 설문지 제목 수정
         survey.patchTitle(surveyDto);
@@ -334,29 +286,19 @@ public class SurveyApiController {
     //설문지 삭제 기능
     //설문지 삭제 시 설문지에 포함되는 질문지, 선택지는 모두 삭제된다.
     //추가로 설문지에 대한 답변도 모두 삭제된다. -> 설문지 답변에 대한 기능이 아직 개발 중이므로 추 후에 개발
+    @Transactional
     @DeleteMapping("/api/{userId}/surveys/{surveyId}")
-    public ResponseEntity<Object> deleteSurvey(@PathVariable Long userId, @PathVariable Long surveyId){
+    public ResponseEntity<Object> deleteSurvey(@PathVariable Long userId, @PathVariable Long surveyId) {
 
         //0. findById로 존재하는 설문지인지 확인
-        SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
-
-        if(survey == null){
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "NotFound");
-            errorResponse.put("message", "삭제하려는 설문지는 존재하지 않습니다.");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
+        SurveyEntity survey = surveyRepository.findById(surveyId).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Survey not found"));
 
         //1. 유저 권한 확인
-        UserEntity user = userRepository.findByUserId(userId);
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        if (survey.getUserEntity().getUserId() != userId) {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "NotFound");
-            errorResponse.put("message", "당신은 ID는 삭제 권한이 존재하지 않습니다.");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-        }
-
+        //2. 해당 Survey 삭제
         surveyRepository.delete(survey);
 
         return ResponseEntity.status(HttpStatus.OK).body(new HashMap<String, Object>() {{
