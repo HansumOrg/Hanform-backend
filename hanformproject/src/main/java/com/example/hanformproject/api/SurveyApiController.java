@@ -241,4 +241,73 @@ public class SurveyApiController {
             put("title", surveyDto.getTitle());
         }});
     }
+
+    // 해당 설문지에 대한 질문지 수정
+    @PutMapping("/api/{userId}/surveys/{surveyId}")
+    public ResponseEntity<Object> updateSurveyQuestions(@PathVariable Long userId, @PathVariable Long surveyId, @RequestBody SurveyDto surveyDto){
+
+        SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
+
+        survey.setSurveyTitle(surveyDto.getTitle());
+
+        // Question and Option update logic
+        updateQuestions(survey, surveyDto.getQuestions());
+
+        surveyRepository.save(survey);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(new HashMap<String, Object>() {{
+            put("message", "Survey updated successfully.");
+            put("surveyId", surveyDto.getSurveyId());
+        }});
+    }
+
+    // 질문지 수정 시 기존 질문들을 모두 삭제하고 새로운 질문지들을 덮어 쓰는 메소드
+    private void updateQuestions(SurveyEntity survey, List<QuestionDto> questionDtos) {
+        // Temporary map to hold existing questions for quick lookup
+        Map<Long, QuestionEntity> existingQuestions = survey.getQuestions().stream()
+                .collect(Collectors.toMap(QuestionEntity::getQuestionId, question -> question));
+
+        // Process incoming questions
+        for (QuestionDto dto : questionDtos) {
+            QuestionEntity question = existingQuestions.get(dto.getQuestionId());
+            if (question == null) {
+                // If the question does not exist, create a new one
+                question = new QuestionEntity();
+                survey.getQuestions().add(question);
+            }
+            question.setSurvey(survey);
+            question.setQuestionNumber(dto.getQuestionNumber());
+            question.setQuestionText(dto.getQuestionText());
+            question.setQuestionType(dto.getQuestionType());
+            question.setIsRequired(dto.getIsRequired());
+            updateOptions(question, dto.getOptions());
+        }
+
+        // Optionally remove questions not included in the DTO
+        survey.getQuestions().removeIf(question -> !questionDtos.stream()
+                .map(QuestionDto::getQuestionId)
+                .collect(Collectors.toList())
+                .contains(question.getQuestionId()));
+    }
+
+    private void updateOptions(QuestionEntity question, List<OptionDto> optionDtos) {
+        Map<Integer, OptionEntity> existingOptions = question.getOptions().stream()
+                .collect(Collectors.toMap(OptionEntity::getOptionNumber, option -> option));
+
+        for (OptionDto dto : optionDtos) {
+            OptionEntity option = existingOptions.get(dto.getOptionNumber());
+            if (option == null) {
+                option = new OptionEntity();
+                question.getOptions().add(option);
+            }
+            option.setQuestion(question);
+            option.setOptionNumber(dto.getOptionNumber());
+            option.setOptionText(dto.getOptionText());
+        }
+
+        question.getOptions().removeIf(option -> !optionDtos.stream()
+                .map(OptionDto::getOptionNumber)
+                .collect(Collectors.toList())
+                .contains(option.getOptionNumber()));
+    }
 }
