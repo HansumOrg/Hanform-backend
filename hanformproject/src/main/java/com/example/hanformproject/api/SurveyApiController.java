@@ -203,4 +203,42 @@ public class SurveyApiController {
             put("title", surveyDto.getTitle());
         }});
     }
+
+    //설문지 제목 수정
+    @PatchMapping("/api/{userId}/surveys/{surveyId}")
+    public ResponseEntity<Object> updateSurveyTitle(@PathVariable Long userId, @PathVariable Long surveyId, @RequestBody SurveyDto surveyDto){
+
+        //0. findById로 존재하는 설문지인지 확인
+        SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
+
+        if(survey == null){
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "NotFound");
+            errorResponse.put("message", "수정하려는 설문지는 존재하지 않습니다.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
+
+        //1. 유저 권한 확인
+        UserEntity user = userRepository.findByUserId(userId);
+
+        if (survey.getUserEntity().getUserId() != userId) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "NotFound");
+            errorResponse.put("message", "당신은 ID는 수정 권한이 존재하지 않습니다.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
+
+        //2. 존재한다면 SurveyDto에서 제목부분만 업데이트
+        survey.patch(surveyDto);
+        surveyRepository.save(survey);
+
+        log.info(survey.toString());
+
+        //3. 변경된 설문지 제목 반환
+        return ResponseEntity.status(HttpStatus.CREATED).body(new HashMap<String, Object>() {{
+            put("message", "Survey title updated successfully.");
+            put("surveyId", surveyDto.getSurveyId());
+            put("title", surveyDto.getTitle());
+        }});
+    }
 }
