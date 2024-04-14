@@ -1,6 +1,6 @@
 package com.example.hanformproject.api;
 
-import com.example.hanformproject.dto.AnswerDto;
+import com.example.hanformproject.dto.*;
 import com.example.hanformproject.entity.AnswerEntity;
 import com.example.hanformproject.entity.QuestionEntity;
 import com.example.hanformproject.entity.SurveyEntity;
@@ -13,15 +13,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.example.hanformproject.dto.SurveyDto.formatTimestampToString;
 
 @Slf4j
 @RestController
@@ -39,36 +36,92 @@ public class AnswerApiController {
     @Autowired
     private AnswerRepository answerRepository;
 
+    // 답변 제출
     @PostMapping("/api/{userId}/surveys/{surveyId}/responses")
     public ResponseEntity<?> submitAnswer(@PathVariable Long userId,
                                           @PathVariable Long surveyId,
-                                          @RequestBody AnswerDto answerDto) {
+                                          @RequestBody AnswerDto.ResponseWrapper responseWrapper) {
 
-        // 존재하지 않는 유저이거나 설문지면 에러 반환
-        if (!userRepository.existsById(userId) || !surveyRepository.existsById(surveyId)) {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("message", "Missing required information or invalid survey/questionId.");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        }
-
-        // 각 답변에 대해 저장하기.
-        // 작성한 유저와 설문지 정보 가져오기
-        UserEntity user = userRepository.findById(userId).orElse(null);
+        List<AnswerDto> answerDto = responseWrapper.getResponses();
         SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
 
-        List<AnswerEntity> answers = new ArrayList<>();
-        for (AnswerDto.AnswerDetail detail : answerDto.getResponses()) {
-            QuestionEntity question = questionRepository.findById(detail.getQuestionId()).orElse(null);
-            // question과 survey 비교해서 다르면 badRequest.
-            if (question == null || !question.getSurvey().equals(survey)) {
-                return ResponseEntity.badRequest().body("questionId 잘못됨");
-            }
-            // Entity로 변환 후 저장.
-            answers.add(detail.toEntity(user, question));
+        // answer값이 비어있다면 badRequest
+        if (answerDto == null) {
+            return ResponseEntity.badRequest().body("답이 비어있음");
         }
 
-        answerRepository.saveAll(answers);
-        return ResponseEntity.ok("저장 완료");
+        // 유저 정보 가져오기
+        UserEntity user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return ResponseEntity.badRequest().body("없는 계정");
+        }
+
+        // Dto -> Entity
+        List<AnswerEntity> answerEntities = answerDto.stream().map(answer -> {
+            QuestionEntity questionEntity = questionRepository.findById(answer.getQuestionId()).orElseThrow(
+                    () -> new IllegalArgumentException("일치하는 질문 없음")
+            );
+
+            AnswerEntity answerEntity = new AnswerEntity();
+            answerEntity.setUser(user);
+            answerEntity.setQuestion(questionEntity);
+            answerEntity.setSurvey(survey);
+            answerEntity.setAnswerText(answer.getAnswerText());
+            return answerEntity;
+        }).collect(Collectors.toList());
+
+        answerRepository.saveAll(answerEntities);
+        return ResponseEntity.ok("답변 성공");
+
     }
 
+    // 답변 조회
+    @GetMapping("/api/{userId}/surveys/{surveyId}/details")
+    public ResponseEntity<Object> getSurveyDetails(@PathVariable Long userId,
+                                                   @PathVariable Long surveyId) {
+        // Entity 가져오기
+        SurveyEntity survey = surveyRepository.findById(surveyId).orElse(null);
+        if (survey == null) {
+            return ResponseEntity.badRequest().body("Survey not found.");
+        }
+
+        // Entity -> DTO
+        SurveyDto surveyDto = convertEntityToDto(survey);
+
+        // 결과 반환.
+        Map<String, Object> response = new HashMap<>();
+        response.put("survey", surveyDto);
+        return ResponseEntity.ok(response);
+    }
+
+    private SurveyDto convertEntityToDto(SurveyEntity survey) {
+        List<QuestionDto> questionDtos = survey.getQuestions().stream()
+                .map(question -> {
+                    List<AnswerDto> answerDtos = question.getAnswers().stream()
+                            .map(answer -> new AnswerDto(
+                                    answer.getAnswerId(),
+                                    answer.getUser().getUserId(),
+                                    answer.getQuestion().getQuestionId(),
+                                    answer.getSurvey().getSurveyId(),
+                                    answer.getAnswerText()
+                            )).collect(Collectors.toList());
+
+                    return new QuestionDto(
+                            question.getQuestionId(),
+                            question.getQuestionNumber(),
+                            question.getQuestionText(),
+                            question.getQuestionType(),
+                            question.getIsRequired(),
+                            answerDtos  // 추가된 옵션 리스트
+                    );
+                }).collect(Collectors.toList());
+
+        return new SurveyDto(
+                survey.getSurveyId(),
+                survey.getUserEntity().getUserId(),
+                survey.getSurveyTitle(),
+                formatTimestampToString(survey.getCreationDate()),
+                questionDtos
+        );
+    }
 }
