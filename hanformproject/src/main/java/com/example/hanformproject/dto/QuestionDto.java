@@ -5,6 +5,7 @@ import com.example.hanformproject.entity.SurveyEntity;
 import com.example.hanformproject.entity.UserEntity;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @AllArgsConstructor // 모든 필드를 매개변수로 갖는 생성자 자동 생성
@@ -19,6 +20,16 @@ public class QuestionDto {
     private String questionType;
     private Boolean isRequired;
     private List<OptionDto> options;
+    private List<AnswerDto> answers;
+
+    public QuestionDto(Long questionId, int questionNumber, String questionText, String questionType, Boolean isRequired, List<AnswerDto> answers) {
+        this.questionId = questionId;
+        this.questionNumber = questionNumber;
+        this.questionText = questionText;
+        this.questionType = questionType;
+        this.isRequired = isRequired;
+        this.answers = answers;
+    }
 
     public QuestionEntity toEntity(SurveyEntity survey) {
 

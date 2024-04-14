@@ -26,7 +26,12 @@ public class AnswerEntity {
     @JoinColumn(name = "questionId", nullable = false)
     private QuestionEntity question;
 
-    @Column(name= "answer", nullable = false)
-    private String answer;
+    @ManyToOne
+    @JoinColumn(name = "surveyId", nullable = false)
+    private SurveyEntity survey;
+
+    @Column(name= "answerText", nullable = false)
+    private String answerText;
+
 
 }

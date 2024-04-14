@@ -1,9 +1,5 @@
 package com.example.hanformproject.dto;
 
-
-import com.example.hanformproject.entity.AnswerEntity;
-import com.example.hanformproject.entity.QuestionEntity;
-import com.example.hanformproject.entity.UserEntity;
 import lombok.*;
 
 import java.util.List;
@@ -16,25 +12,14 @@ import java.util.List;
 public class AnswerDto {
     private Long answerId;
     private Long userId;
-    private List<AnswerDetail> responses;
+    private Long questionId;
+    private Long surveyId;
+    private String answerText;
 
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @ToString
-    @Getter
-    @Setter
-    public static class AnswerDetail {
-        private Long questionId;
-        private String answer;
 
-        public AnswerEntity toEntity(UserEntity user, QuestionEntity questionId) {
-            AnswerEntity answer = new AnswerEntity();
-            answer.setUser(user);
-            answer.setQuestion(questionId);
-            answer.setAnswer(this.answer);
-            return answer;
-        }
+    // 답변 제출을 받기 위한 클래스
+    @Data
+    public static class ResponseWrapper{
+        private List<AnswerDto> responses;
     }
-
-
 }

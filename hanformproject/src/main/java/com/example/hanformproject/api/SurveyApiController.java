@@ -124,7 +124,8 @@ public class SurveyApiController {
                             question.getQuestionText(),
                             question.getQuestionType(),
                             question.getIsRequired(),
-                            optionDtos  // 추가된 옵션 리스트
+                            optionDtos,  // 추가된 옵션 리스트
+                            null
                     );
                 }).collect(Collectors.toList());
 

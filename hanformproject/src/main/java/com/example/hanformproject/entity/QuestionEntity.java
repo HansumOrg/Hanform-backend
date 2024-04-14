@@ -35,4 +35,7 @@ public class QuestionEntity {
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OptionEntity> options = new ArrayList<>();
 
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AnswerEntity> answers = new ArrayList<>();
+
 }
