@@ -37,4 +37,11 @@ public class SurveyEntity {
     // orphanRemoval 데이터 베이스 삭제시, 부모 가 삭제되면 자식도 같이 삭제됨.
     @OneToMany(mappedBy = "survey", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QuestionEntity> questions = new ArrayList<>();
+
+    public void patchTitle(SurveyDto surveyDto){
+        // 객체 갱싱
+        if(surveyDto.getTitle() != null){
+            this.surveyTitle = surveyDto.getTitle();
+        }
+    }
 }
