@@ -8,6 +8,7 @@ import lombok.*;
 @NoArgsConstructor // 디폴트 생성자를 추가!
 @ToString
 @Getter
+@Setter
 public class UserEntity {
 
     @Id // 대표값
@@ -23,14 +24,5 @@ public class UserEntity {
     @Setter // setPassword 기능 가지고 있음.
     @Column
     private String password;
-
-    public void patch(UserEntity userEntity) {
-        if (userEntity.loginId != null)
-            this.loginId = userEntity.loginId;
-        if (userEntity.nickname != null)
-            this.nickname = userEntity.nickname;
-        if (userEntity.password != null)
-            this.password = userEntity.password;
-    }
 
 }
