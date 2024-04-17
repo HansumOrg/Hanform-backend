@@ -1,4 +1,4 @@
-FROM bellsoft/liberica-openjdk-alpine:17
+FROM openjdk:17
 # or
 # FROM openjdk:8-jdk-alpine
 # FROM openjdk:11-jdk-alpine
@@ -9,10 +9,10 @@ CMD ["./gradlew", "clean", "build"]
 
 VOLUME /tmp
 
-ARG JAR_FILE=build/libs/*.jar
+#ARG JAR_FILE=build/libs/*.jar
 # or Maven
 # ARG JAR_FILE_PATH=target/*.jar
-COPY ${JAR_FILE} app.jar
+COPY build/libs/hanformproject-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
 
